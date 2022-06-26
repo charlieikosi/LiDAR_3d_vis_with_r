@@ -1,7 +1,3 @@
-
-setwd("E:/UC/Course/INTERNSHIP/TASKS/1_DATA_DOWNLOAD/R")
-save.image(file = "internship.RData")
-
 # Set crs
 proj_crs <- "+proj=tmerc +lat_0=0 +lon_0=173 +k=0.9996 +x_0=1600000 +y_0=10000000
 +ellps=GRS80 +datum=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
@@ -37,7 +33,7 @@ nz_basemap_footprint <- tm_shape(nz_footprint) +
 nz_basemap_footprint
 
 
-# In this step, we want to select one building footprint.
+# Select one building footprint.
 building_ID <- nz_footprint[, 1]
 uc_library_footprint <- building_ID[building_ID$building_i == 2042309, ]
 library_plot <- tm_shape(uc_library_footprint) +
@@ -46,7 +42,7 @@ library_plot
 nz_basemap_footprint + library_plot
 
 
-# Create a 1m buffer around the library building
+# Create a 1m buffer 
 buffer <- st_buffer(uc_library_footprint, dist = 1)
 buffer_1m <- st_buffer(uc_library_footprint, dist = 1) %>%
   tm_shape() +
@@ -73,41 +69,30 @@ las_check(nz_pointcloud)
 plot(nz_pointcloud, color = "Z") 
 
 
-# We shall clip the point cloud and building footprint. Should create two:
-# -One with just the main library building footprint and one with buffer
-
+# Clip point cloud and building footprint
 uc_library_sp <- as_Spatial(buffer) # we convert this sf object to an spDataframe before we clip
 uc_library_pointcloud <- clip_roi(nz_pointcloud, uc_library_sp) # lasclip is deprecated so I used clip_roi instead.
 plot(uc_library_pointcloud)
 
-#Then save the new object as a separate las file.
+# Save las file.
 writeLAS(uc_library_pointcloud, "uc_library.las")
-
-
-#code below for clipping the building footprint with the 1m buffer
-#only_uc_main_library_footprint_buffer_sp <- as_Spatial(only_uc_main_library_footprint_buffer) # we convert this sf object to an spDataframe before we clip
-#uc_library_footprint_buffer_lider <- clip_roi(uc_point_cloud, only_uc_main_library_footprint_buffer_sp)
-#plot(uc_library_footprint_buffer_lider)
-#Then save the new object as a separate las file.
-#writeLAS(uc_library_footprint_buffer_lider, "uc_library_1m_buffer.las")
-
 
 ##----------------------------------DEM-----------------------------------------
 
 #Load DEM
 nzdem <- raster("dem/DEM_BX24_2018_1000_1305.tif")
-plot(nzdem) # plot to check the dem
+plot(nzdem) # plot to check dem
 crs(nzdem)
 
 library_dem <- nzdem %>%
   crop(uc_library_footprint) %>%
   mask(uc_library_footprint) # this code clips the dem to the 1m buffer building footprint
 plot(library_dem)
-writeRaster(library_dem, "D:/UC/Course/INTERNSHIP/TASKS/1_DATA_DOWNLOAD/R/dtm.tif")
+writeRaster(library_dem, "path/to/directory")
 library_dem
 getValues(library_dem)
 
-#Check to see if extents of the building footprint and the clipped dem are the same
+#Check extents
 extent(library_dem) 
 #extent(only_uc_main_library_footprint_buffer)
 class(uc_library_pointcloud)
@@ -116,13 +101,13 @@ class(library_dem)
 
 ##----------------------------POINTS EXTRACTION---------------------------------
 
-
-# matthew's worked code
 #install.packages("skimr")
 #library(skimr)
 # Subtract lidar elevation from dem.
+
 # We will do this in two parts. First we create a data frame from the lidar data and save it as an sf object
 # 1. To do this, we extract the data information contained in the "datatable" of the las object
+
 df <- uc_library_pointcloud@data # this extracts only the information contained in the data table of the point cloud object
 # and creates a dataframe.
 # lidar data is very noisy. We did see this in the early 3D plot. Lets plot this in a ggplot
