@@ -1,0 +1,372 @@
+---
+title: "INTERNSHIP REPORT"
+output:
+  html_document:
+    df_print: paged
+---
+#### **By Charlie Arua Ikosi**
+
+*22nd October, 2021*
+
+
+##### **Introduction**
+
+As part of the PMGST program, an internship allows a student to gain hands on experience into the industry and gain work experience while doing so. This report highlights the work that was done within the Geospatial Research Institute (GRI) as an intern with the research team for a semester long attachment.
+
+The internship was accompanied by a project with relevance to climate change effects for flooding in a New Zealand context. This looked at visualizing or modelling buildings into a 3D environment using available datasets from Light Detection and Ranging (LiDAR) and Digital Terrain Model (DTM) datasets of New Zealand. The focus of the project was to develop code to automate the generation of these 3D building and then have it tested on the university library to see how it would perform. Ultimately, as part of the Digital Twin project currently being developed by the research team at GRI, the internship project aims to contribute to that larger project of the Digital Twin.
+
+This report will firstly provide a literature review on the topic of 3D modeling and the concept of the digital twin to set the context for the project and then present the methods applied, the type of coding language used and as well as its output. Then finally discuss the outcome of the project, highlight challenges and suggestions for further development.
+
+##### **3D Visualization And The Digital Twin**
+
+Data visualisation has been around for quite a long time with the oldest dating back to 5000 years before present in ancient Babylonia (Clarke, 2013). During that time, visualizations were etched into clay tablets for cartography. Since that time, present day visualizations have advanced far beyond the clay tablets of ancient times and have taken in many different forms, particularly digitally with the advancement of computer, and are becoming intuitive and providing insights that would have been difficult to see without it. 3D visualisations are those such visualisations that have allowed us to see the natural world around us from a different perspective. The ability to model our surroundings and then test and manipulate it against a set number of variables has alot of advantages to help predict the outcome of a phenomena and to refine it.  Some, if not most 3D visualizations have been viewed almost on a daily basis, ranging from mobile apps, desktops and to digital advertising billboards to name a few.
+
+In forestry, 3D visualizations have proven to be a breakthrough in technology with its many applications. The use of laser scanning equipment such as LiDAR to produce these visualizations has permitted accurate measurements of the forest biomass such as subcanopy vegetation and forest structure to assist in habitat mapping and management (Dubayah & Drake, 2000).
+In other areas such as urban centers, the need for navigation, city planning, tourism and construction greatly requires the use of 3D visualizations (Popovic, Govedarica, Jovanovic, Radulovic, & Simeunovic, 2017). These areas are dynamic and continually changing along with the hype of activity by its inhabitants, modeling and understanding the temporal and spatial scales is vital to urban and city planners. In the context of climate change, urban areas pose as areas of high risk as half of the worlds population live in cities (Network, 2013) and are the hub of where trade and commerce thrive (Etezadzadeh, 2016b). It is expected that by the year 2050, this population will increase to 66% according to the United Nations (Etezadzadeh, 2016a).
+
+With that future outlook, these factors and insights have given rise to the Smart City model to solve some of the problems we face in urban areas such as congestion, pollution etc. Central to it are 3D visualizations where smart cities utilize technology to provide services and city-wide problems to improve accessibility and social services. In parallel to this, the concept of the Digital Twin also overlaps its design with a  representation of the physical world into a 3D digital entity (Newrzella, Franklin, & Haider, 2021).  This stems from real time inputs from processes and provides up to date analytics of these processes to perform predictions for optimization and of future challenges (Newrzella et al., 2021) that are unforeseen.
+
+In disaster risk management, its importance is realised for its application in a smart city and urban environment model. An effective response to natural disasters such as flooding and the recovery process, is the awareness of its spatial and temporal evolution in the present and the comprehensive analytical interpretation of situational data (Fan, Jiang, & Mostafavi, 2020). Digital twins are capable of this and these advantages wouldn’t’ be what the digital twin aspires to be without any form of 3D visualization. It’s definition solely describes this virtual representation as a 3-dimensional digital entity.
+
+For New Zealand, there is already growing interest in the development of Digital Twins. The establishment of the Digital Twin Hub between Australia and New Zealand (Digital Twin Hub, 2020) is an example of the value seen in this technology with several industries in energy and the infrastructure sector already having incorporated it into their business models. For example, water treatment in Hamilton, New Zealand’s fourth largest and fastest growing city produced a digital twin to improve their asset knowledge of their treatment plant where by they used high resolution drone imagery to map the facility and create the 3D visualization needed for the digital twin. In academia, research into this technology also has a growing interest with the Geospatial Research Institute currently working on building a digital twin for flooding in New Zealand. 
+
+Having set the context of the internship project, the following shall introduce the methods applied for creating 3D visualisation of buildings in New Zealand.
+
+##### **Methods and Results**
+
+This descriptive write up will describe the steps and processes taken to turn LiDAR point cloud data sets into a 3D visualization. The approach taken was exploratory in nature to see if it could be done automatically and scaled up for a wider area for acquired LiDAR data sets in New Zealand. For this, the university library was chosen and coding developed for the automation. The programming language used was R along with its comprehensive collection of libraries. These libraries allowed for wrangling of the data sets into formats or table structures that where used to create outputs for the various steps.
+
+*Datasets*
+
+The datasets needed for the project where:
+
+* NZ building footprints in an esri .shp file format
+* a raster digital elevation model (DEM) or digital terrain model (DTM)
+* LiDAR point cloud of the University of Canterbury area
+
+The buidling footprints where obtained from statsNZ whilst the LiDAR and raster DEM where obtained from open topography from their respective websites and downloaded into the local machine.
+
+*Libraries*
+
+Libraries required:
+
+```{r Libraries, message=FALSE, results=FALSE}
+# Note: install packages if not already installed.  
+library(tidyverse)
+library(sf)
+library(tmap)
+library(buffeRs)
+library(raster)
+library(lidR)
+library(rlas)
+library(rgl)
+library(rgdal)
+library(gdalUtils)
+library(quadmesh)
+library(alphashape3d)
+library(tmaptools)
+library(RStoolbox)
+library(gstat)
+```
+
+
+*Building Footprints*
+
+After having downloaded and loaded the required libraries, the first part of the project was to load the building footprints shape file. Using the sf library and the tmap library, the building footprints was loaded into the R environment and then plotted to provide the basis to explore the building footprints. After having chosen the building of interest, its polygon ID was obtained by opening the shape file in ArcMap and then using the info tool to view the building attributes. The building ID was then used to subset the dataframe of the building footprints shapefile in R to make the plot in Map 2 with a 1 meter buffer.
+
+```{r message=FALSE, results=FALSE, echo=FALSE}
+setwd("C:/Local/cik15/Internship") # primary project working directory 
+nz_footprint <- st_read("nz-building-outlines.shp")
+#st_crs(nz_footprint)
+```
+
+
+```{r, echo=FALSE,  fig.align = 'center',out.width="100%", fig.cap="**Map 1: Map of building footprints for the University area.**"}
+# Use tmap to view the shape file.
+nz_basemap_footprint <- tm_shape(nz_footprint) +
+  tm_borders(alpha = 0.3) +
+  tm_compass() +
+  tm_scale_bar() + 
+  tm_layout(main.title = "Building footprints - University of Canterbury Area",
+            main.title.size = 1)
+
+nz_basemap_footprint
+```
+
+
+```{r, echo=FALSE, fig.align = 'center',out.width="100%", fig.cap="**Map 2: Map showing selected building footprint of the University of Canterbury main library.**"}
+building_ID <- nz_footprint[, 1]  # This subsets the columns for building id with geometry
+uc_library_footprint <- building_ID[building_ID$building_i == 2042309, ] # subset the selected building
+library_plot <- tm_shape(uc_library_footprint) +
+  tm_compass() +
+  tm_scale_bar() + 
+  tm_layout(main.title = "University of Canterbury Library",
+            main.title.size = 1) +
+  tm_fill("red")
+
+# Create a 1m buffer around the library building
+buffer <- st_buffer(uc_library_footprint, dist = 1)
+buffer_1m <- st_buffer(uc_library_footprint, dist = 1) %>% 
+  tm_shape() +
+  tm_borders(alpha = 0.3) + 
+  tm_fill("yellow")
+
+# Overlay this with the basemap created in the first code chunk
+nz_basemap_footprint + buffer_1m + library_plot
+```
+
+*LiDAR pointcloud*
+
+After choosing the library building footprint, the next step was to load the LiDAR dataset that covered the university area. Then, using the library building footprint, the LiDAR point cloud was clipped to only extract the point clouds for the library (see Figure 2). The rgl package was utilized for this method.
+
+```{r, echo=FALSE, fig.align = 'center',out.width="100%", fig.cap="**Figure 1: Image showing the unclipped point cloud dataset for the univeristy area. We can see that this dataset is noisy with points floating above the surface.**"}
+open3d()
+nz_pointcloud <- readLAS("points.las")
+knitr::include_graphics("point_cloud.jpg")
+```
+
+
+```{r, echo=FALSE, fig.align = 'center',out.width="100%", fig.cap="**Figure 2: Image showing the clipped point cloud for the univeristy library.**"}
+# code below for clipping the building footprint with the 1m buffer
+uc_library_sp <- as_Spatial(buffer) # convert this sf object to an spDataframe before clipping
+uc_library_pointcloud <- clip_roi(nz_pointcloud, uc_library_sp) # lasclip is deprecated so used clip_roi instead.
+knitr::include_graphics("library.jpg")
+```
+
+*DEM*
+
+The next step was to load the raster DEM needed to correct the height values of the z component for the library point cloud. Once loaded into R, it was cropped and then masked using the library building footprint. The code chunk below shows the coding done.
+
+```{r, warning=FALSE, fig.align = 'center', fig.cap="DEM plot of the university area."}
+#Load DEM
+nzdem <- raster("dem/DEM_BX24_2018_1000_1305.tif")
+plot(nzdem) # plot to view dem
+
+library_dem <- nzdem %>%
+  crop(uc_library_footprint) %>%
+  mask(uc_library_footprint)
+```
+
+*Extraction*
+
+After loading the required datasets, this step then performed an extraction of the dataframe stored in the LiDAR data. This was done by drilling into the layers contained in the point clouds to produce the dataframe shown in Table 1 below. This dataframe shows the acquired LiDAR data for the x, y and z of each of the points in the point cloud, its intensity, gps time and other information association with its data collection.
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE}
+# this extracts only the information contained in the data table of the point cloud object.
+
+df <- uc_library_pointcloud@data
+df %>% head(5)
+```
+**Table 1: Table showing the first 5 rows of the extracted LiDAR point cloud data frame for the library**
+
+Then using ggplot, subset the X, Y and Z columns to visualize these points and identify the outliers in the data that was seen earlier floating above the surface in Figure 1 above.
+
+```{r, fig.align = 'center',out.width="100%", fig.cap="**Plot 1: Plot of LiDAR point Z values for the library. The effect of the points classed as 7 distorts the height of the library.**"}
+df_plot <- df %>% ggplot(mapping = aes(x = X, y = Z, color = factor(Classification))) +
+  geom_point()
+df_plot + ggtitle("Library profile from Z values") + 
+  labs(color = "Point Classes")
+```
+
+The next step was to remove the outlier points that where distorting the height of the library. To do this, points not classed as 7 where filtered from the dataset to produce an undistorted version of the library point clouds (see Plot 2).
+
+```{r, fig.align = 'center',out.width="100%", fig.cap="**Plot 2: Plot showing the filtered profile of the library.**"}
+df_2 <- df %>% filter(Classification <= 2) %>% 
+  dplyr::select(X, Y, Z, Classification)
+
+# To see the plot use ggplot
+
+df_plot2 <- ggplot(df_2, aes(x = X, y = Z, color = factor(Classification))) +
+  geom_point()
+df_plot2 + ggtitle("Library profile from filtered Z values") + 
+  labs(color = "Point Classes")
+```
+
+Having filtered and cleaned up the LiDAR points for the library, the height was then corrected using the dem. Subtraction of the dem elevation values needed to be made with the elevation Z- values from the point clouds by first, extracting the cell values from the DEM and then using these cell values to obtain the difference between the  Z-values of the point clouds. This then produced a corrected height for the library point clouds that was not relative to sea level (see Plot 3). The table below shows these corrected elevation values in the Z column.
+
+```{r, echo=FALSE}
+# Convert to an sf object by using the X and Y values. 
+dfsf <- st_as_sf(df_2, coords = c("X","Y"))
+
+# Extract cell values from dem
+dfsf.ground <- raster::extract(nzdem, dfsf) # Extracts the data values from raster.
+
+dfsf$ground <- dfsf.ground # this code will append the list of cell values extracted from the dem as dfsf.ground to
+# a new column with the header "ground" in the data frame dfsf. Note the use of $ is used to give this header name.
+
+# Obtain corrected relative height.
+dfsf <- dfsf %>% mutate(relheight = Z - ground) # performs the subtraction using mutate and 
+
+# Create a tibble with the corrected height
+x <- as.numeric(df_2$X)
+y <- as.numeric(df_2$Y) 
+z <- as.numeric(dfsf$relheight) 
+classification <- as.numeric(dfsf$Classification) # extracts the column values
+
+corrected <- tibble(x, y, z, classification)
+corrected %>% head(5)
+```
+
+**Table 2: Table showing the corrected height (z - column) of the library building.**
+
+*3D Plotting*
+
+*Inverse Distance Weighting (IDW)*
+
+Following this, the creation of the 3D models from these points was explored starting with an inverse distance weighting interpolation (see Plot 4) which was then turned into a raster file. Then using this raster file, a 3D surface was created using the function quadmesh() from the quadmesh library package to produce the 3D building shown in Plot 5.
+
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, fig.align = 'center',out.width="100%", fig.cap="**Plot 3: 3D plot of the corrected z-values in teh library point clouds.**"}
+close3d()
+open3d()
+plot3d(x, y, z, zlab = "height")
+rglwidget()
+```
+
+
+
+```{r, echo=FALSE, fig.show='hide'}
+# IDW Interpolation
+
+proj_crs <- "+proj=tmerc +lat_0=0 +lon_0=173 +k=0.9996 +x_0=1600000 +y_0=10000000
++ellps=GRS80 +datum=WGS84 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+
+# create empty grid
+grid = as(library_dem, "SpatialPixels")
+crs(grid) <- proj_crs
+grddf = as.data.frame(grid)
+
+# create spatial points df
+df_sp <- df %>% filter(Classification <= 1) %>% 
+  dplyr::select(X, Y, Z, Classification) # filtered dataframe without class 2 and 7
+
+coordinates(df_sp) = ~ X + Y
+crs(df_sp) <-  proj_crs
+
+# IDW
+interp = idw(formula = Z~1, 
+             locations = df_sp, 
+             newdata = grid)
+interp_df = as.data.frame(interp) %>% dplyr::select("x", "y", "var1.pred")
+
+interp_raster <- rasterFromXYZ(interp_df, res = 1, crs=proj_crs, digits=3)
+#class(interp_raster)
+
+ggplot()+
+  geom_tile(data = interp_df, aes(x = x, y = y, fill = var1.pred))+
+  scale_fill_gradientn(colors = terrain.colors(10))+
+  theme_bw()
+```
+
+
+```{r, warning=FALSE, echo=FALSE, fig.align = 'center',out.width="100%", fig.cap="**Plot 4: IDW plot of the library.**"}
+plot(interp_raster, col = terrain.colors(20), main="Library height - Inverse Distance Interpolation",
+     xlab="Longitude", ylab="Latitude")
+```
+
+
+```{r, setup, echo=FALSE}
+options(rgl.useNULL = TRUE)
+```
+
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, fig.align = 'center',out.width="100%", fig.cap="**Plot 5: 3D Surface of created from IDW interpolation.**"}
+# 3D Mesh1 from IDW Interpolation
+close3d()
+idw_3d <- quadmesh(interp_raster)
+open3d()
+shade3d(idw_3d, col = "red")
+rglwidget()
+```
+
+*Delaunay Triangulation*
+
+Another method of triangulation was then applied using the functions from the delaunay package deldir and a 3D surface was created (see Plot 6).
+
+```{r, warning=FALSE,, message=FALSE, echo=FALSE, fig.align = 'center',out.width="100%", fig.cap="**Plot 6: 3D Surface created from the Delaunay Triangulation method.**"}
+# 3D Mesh3 from delaunay
+close3d()
+dxyz <- deldir::deldir(x - mean(x), y - mean(y), z = z)
+open3d()
+persp3d(dxyz, col = "red")
+rglwidget()
+```
+
+
+
+##### **Project Outcome and Discussion**
+
+
+This internship project was able to write code in R that was able to create 3D meshes from LiDAR pointclouds. As much of the coding for 3D generation was entirely performed by functions in these library packages, constructed meshes where built under different interpolation techniques and assumptions resulting in various surface forms. 
+
+The use of the Quadmesh library functions assume an input of an object that is continuous in nature, typically rasters. Its functions perform a cell-based interpolation that creates a continuous implicit surface. To unpack this, in mathematics, parametric surfaces can either be explicit or implicit. As one can assume directly from their names, explicit surfaces are exact, or specific whilst implicit surfaces are an estimate under an infinite level of detail that is derived from a continuous volume function f(x,y,z) = 0. It's surface is implied to exist within the function and the surface becomes explicit when this function is solved for x, y and z (Kentwell, 2019). 
+
+Plot 5 is an implicit surface created from the quadmesh library functions. Its input parameter had to first under go an inverse distance weighted interpolation (Plot 4) to create the continuous surface needed by the quadmesh 3D function. It can be seen that the model is highly inaccurate and rather primitive in form. IDW was not able to interpolate the ground points and so the resulting surface from the quadmesh function only created a mesh for the roof features. 
+ 
+When comparing this to the implicit surface (Plot 6) of the deldir function from the deldir package, there is a clear distinction of the well defined features and structures of the library. The deldir library function uses the Delaunay triangulation and the Derichlet or voronio tessellations of a planar point set. This triangulation method is constructed by the creation of circles where no vertex lies inside the circumcircle of any triangle in the set. For example, suppose there where 4 points (see Figure 3) a circle can be drawn to intersect the vertices of a triangle; this creates a circumcircle and is repeated for all the other points making sure no vertex of an adjacent triangle is contained within the adjacent circumcircle. This technique makes the Delaunay triangulation versatile in creating meshes however, there are limitations to this method. Larger mesh sizes result in the triangulation using up a lot of hardware memory and becoming slow.  Scaling up using the Delaunay triangulation method wouldn’t be an ideal method however it can be refined by working on the points in clusters (Dey, Levine, & Slatton, 2010). 
+
+
+```{r, fig.align = 'center', figures-side, echo=FALSE, out.width="20%"}
+knitr::include_graphics("dt.jpg")
+knitr::include_graphics("dt2.jpg")
+knitr::include_graphics("dt3.jpg")
+```
+**Figure 3: showing how the Delaunay Triangulation works. A circumcircle is created when all three vertices of a triangle are in a circle.**
+
+##### **Challenges and Future Research**
+
+There where challenges in trying to understand the library functionalities during the project. The library documentation was either technical or that there where not enough example codes that demonstrated its usage. As such, some of the library packages that arose during the project duration such as the Lidr package could not be fully utilized for its other extended capabilities.The lidr package is most applicable to forestry for canopy height computation and individual tree segmentation from LiDAR data. This could yield some useful applications in the future to extracting building pointclouds if its functions are explored further.
+
+##### **References**
+
+Clarke, K. C. (2013). What is the World's Oldest Map? Cartographic Journal, 50(2), 136-143. doi:10.1179/0008704113Z.00000000079 
+
+Dey, T. K., Levine, J. A., & Slatton, A. (2010). Localized Delaunay Refinement for Sampling and Meshing. Computer Graphics Forum, 29(5), 1723-1732. doi:https://doi.org/10.1111/j.1467-8659.2010.01781.x 
+
+Dubayah, R. O., & Drake, J. B. (2000). Lidar remote sensing for forestry. Journal of forestry, 98(6), 44. Retrieved from https://go.exlibris.link/pnxwfyqX 
+
+Etezadzadeh, C. (2016a). The City as a Place of Opportunity. In C. Etezadzadeh (Ed.), Smart City – Future City? Smart City 2.0 as a Livable City and Future Market (pp. 3-10). Wiesbaden: Springer Fachmedien Wiesbaden. 
+
+Etezadzadeh, C. (2016b). Introduction. In C. Etezadzadeh (Ed.), Smart City – Future City? Smart City 2.0 as a Livable City and Future Market (pp. 1-1). Wiesbaden: Springer Fachmedien Wiesbaden. 
+
+Fan, C., Jiang, Y., & Mostafavi, A. (2020). Social Sensing in Disaster City Digital Twin: Integrated Textual&#x2013;Visual&#x2013;Geo Framework for Situational Awareness during Built Environment Disruptions. Journal of Management in Engineering, 36(3), 04020002. doi:doi:10.1061/(ASCE)ME.1943-5479.0000745 
+
+Hub, D. T. (2020). New Zealand Digital Twin Summit. Retrieved from https://www.digitaltwinhub.org/ 
+
+Kentwell, D. (2019). Destroying the Distinction Between Explicit and Implicit Geological Modelling. Retrieved from https://dxi97tvbmhbca.cloudfront.net/upload/user/image/DKentwell_Explicit_and_Implicit_Modelling_Mining_Geology_201920200226010527173.pdf 
+
+Network, S. D. S. (2013). WHY THE WORLD NEEDS AN URBAN SUSTAINABLE DEVELOPMENT GOAL. Retrieved from https://sustainabledevelopment.un.org/content/documents/2569130918-SDSN-Why-the-World-Needs-an-Urban-SDG.pdf 
+
+Newrzella, S. R., Franklin, D. W., & Haider, S. (2021). 5-Dimension Cross-Industry Digital Twin Applications Model and Analysis of Digital Twin Classification Terms and Models. IEEE Access, 9, 131306-131321. doi:10.1109/ACCESS.2021.3115055 
+
+Popovic, D., Govedarica, M., Jovanovic, D., Radulovic, A., & Simeunovic, V. (2017). 3D Visualization of Urban Area Using Lidar Technology and CityGML. IOP Conference Series: Earth and Environmental Science, 95, 042006. doi:10.1088/1755-1315/95/4/042006 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
